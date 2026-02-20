@@ -99,17 +99,19 @@ export const stateMachine: ConversationStateMachine = {
   },
 
   parent_interest: {
-    question: 'Wonderful! Which program are you most interested in for your child?',
+    question: 'Wonderful! What area interests you most for your child?',
     quickReplies: [
       'Robotics & Coding Program',
       'Young Product Designer Program (YPDP)',
       'Higher Order Thinking Skills (HOTS)',
+      'Not Sure',
     ],
     validation: (input: string) => {
       const valid = [
         'Robotics & Coding Program',
         'Young Product Designer Program (YPDP)',
         'Higher Order Thinking Skills (HOTS)',
+        'Not Sure',
       ]
       return valid.some(v => input.toLowerCase().includes(v.toLowerCase()))
     },

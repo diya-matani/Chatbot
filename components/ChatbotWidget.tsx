@@ -141,7 +141,9 @@ const ChatbotWidget = forwardRef<ChatbotWidgetRef>((props, ref) => {
         updateLeadData('grade_or_role', input)
         break
       case 'parent_interest':
-        updateLeadData('interest_or_strength', input)
+        if (!isParentInterestNotSure) {
+          updateLeadData('interest_or_strength', input)
+        }
         break
       case 'parent_city':
         updateLeadData('city', input)
@@ -215,6 +217,25 @@ const ChatbotWidget = forwardRef<ChatbotWidgetRef>((props, ref) => {
         setIsTyping(false)
         addMessage('assistant', recommendationText, quickReplies)
       }, 800)
+      return
+    }
+
+    // If parent clicked "Not Sure" on interest, explain programs and
+    // re-ask the same question without moving to the next step.
+    if (isParentInterestNotSure) {
+      const config = getStateConfig('parent_interest')
+      const overview =
+        'No worries — here’s a quick overview of our core STEM programs:\n\n' +
+        '• Robotics & Coding Program (Grades 1–9) – Hands-on coding and robotics projects integrated into the school curriculum.\n' +
+        '• Young Product Designer Program (YPDP) (Grades 3–9) – Kids design and build real tech products using hardware kits and block-based coding.\n' +
+        '• Higher Order Thinking Skills (HOTS) (Grades 1–8) – Strengthens critical thinking, logical reasoning, and problem-solving.\n\n'
+
+      setIsTyping(true)
+      setTimeout(() => {
+        setIsTyping(false)
+        addMessage('assistant', overview + config.question, config.quickReplies)
+      }, 800)
+
       return
     }
 
