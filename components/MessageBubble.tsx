@@ -16,8 +16,8 @@ export default function MessageBubble({ message, onQuickReply }: MessageBubblePr
         <div
           className={`rounded-2xl px-4 py-2.5 ${
             isUser
-              ? 'bg-blue-600 text-white rounded-br-sm'
-              : 'bg-gray-100 text-gray-800 rounded-bl-sm'
+              ? 'bg-blue-600 dark:bg-blue-700 text-white rounded-br-sm'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-bl-sm'
           }`}
         >
           <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>

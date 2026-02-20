@@ -40,8 +40,17 @@ export const stateMachine: ConversationStateMachine = {
   welcome: {
     question: 'Hi 👋 Welcome to WizKlub!\nAre you:\n1. A Parent\n2. A School Representative',
     quickReplies: ['1. A Parent', '2. A School Representative'],
-    nextState: 'user_type',
-    stepNumber: 0,
+    validation: (input: string) => {
+      const lower = input.toLowerCase()
+      return lower.includes('parent') || lower.includes('school') || lower.includes('1') || lower.includes('2')
+    },
+    nextState: (input: string) => {
+      const lower = input.toLowerCase()
+      if (lower.includes('parent') || lower.includes('1')) return 'parent_name'
+      if (lower.includes('school') || lower.includes('2')) return 'school_name'
+      return 'user_type'
+    },
+    stepNumber: 1,
     totalSteps: 6,
   },
 
@@ -66,7 +75,9 @@ export const stateMachine: ConversationStateMachine = {
   parent_name: {
     question: "Great! I'd love to help you find the perfect program for your child. What's your full name?",
     validation: (input: string) => {
-      if (input.trim().length < 2) return 'Please enter your full name'
+      const trimmed = input.trim()
+      // Accept names with at least 2 characters (can be single name or full name)
+      if (trimmed.length < 2) return 'Please enter your name (at least 2 characters)'
       return true
     },
     nextState: 'parent_grade',
@@ -75,13 +86,12 @@ export const stateMachine: ConversationStateMachine = {
   },
 
   parent_grade: {
-    question: 'Perfect! What grade is your child in? (e.g., 3, 4, 5)',
+    question: "That's wonderful 😊 Which grade is your child currently studying in?",
+    quickReplies: ['Grades 1–2', 'Grades 3–5', 'Grades 6–8', 'Grades 9–10'],
     validation: (input: string) => {
-      const grade = parseInt(input)
-      if (isNaN(grade) || grade < 1 || grade > 12) {
-        return 'Please enter a valid grade (1-12)'
-      }
-      return true
+      const validOptions = ['Grades 1–2', 'Grades 3–5', 'Grades 6–8', 'Grades 9–10', '1-2', '3-5', '6-8', '9-10']
+      const lower = input.toLowerCase()
+      return validOptions.some(option => lower.includes(option.toLowerCase()) || lower.includes(option.replace('–', '-')))
     },
     nextState: 'parent_interest',
     stepNumber: 3,

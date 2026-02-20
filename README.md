@@ -162,7 +162,7 @@ The chatbot uses OpenAI GPT-4o-mini with:
 - Objection handling
 - Conversion-focused messaging
 
-## 🚀 Deployment
+## 🚀 Deployment & Hosting
 
 ### Build for Production
 
@@ -170,13 +170,79 @@ The chatbot uses OpenAI GPT-4o-mini with:
 npm run build
 ```
 
-### Deploy to Vercel
+### Option 1: Deploy to Vercel (Recommended)
 
+**Via Vercel CLI:**
 ```bash
+npm i -g vercel
 vercel
 ```
 
-Or connect your GitHub repository to Vercel for automatic deployments.
+**Via GitHub (Recommended):**
+1. Push your code to GitHub
+2. Go to [vercel.com](https://vercel.com)
+3. Click "New Project"
+4. Import your GitHub repository
+5. Add environment variable: `OPENAI_API_KEY`
+6. Click "Deploy"
+
+Vercel will automatically:
+- Build your Next.js app
+- Deploy it to a production URL
+- Set up automatic deployments on every push
+
+### Option 2: Deploy to Netlify
+
+**Via Netlify CLI:**
+```bash
+npm i -g netlify-cli
+netlify deploy --prod
+```
+
+**Via GitHub:**
+1. Push your code to GitHub
+2. Go to [netlify.com](https://netlify.com)
+3. Click "New site from Git"
+4. Connect your repository
+5. Build settings:
+   - Build command: `npm run build`
+   - Publish directory: `.next`
+6. Add environment variable: `OPENAI_API_KEY`
+7. Click "Deploy site"
+
+### Option 3: Deploy to Railway
+
+1. Go to [railway.app](https://railway.app)
+2. Click "New Project" → "Deploy from GitHub repo"
+3. Select your repository
+4. Add environment variable: `OPENAI_API_KEY`
+5. Railway will auto-detect Next.js and deploy
+
+### Option 4: Deploy to Render
+
+1. Go to [render.com](https://render.com)
+2. Click "New" → "Web Service"
+3. Connect your GitHub repository
+4. Settings:
+   - Build Command: `npm install && npm run build`
+   - Start Command: `npm start`
+5. Add environment variable: `OPENAI_API_KEY`
+6. Click "Create Web Service"
+
+### Environment Variables for Production
+
+Make sure to set these in your hosting platform:
+- `OPENAI_API_KEY` - Your OpenAI API key (required)
+- `NEXT_PUBLIC_APP_URL` - Your production URL (optional, for analytics)
+
+### Post-Deployment Checklist
+
+- ✅ Verify chatbot opens and works correctly
+- ✅ Test both Parent and School flows
+- ✅ Check that OpenAI API calls are working
+- ✅ Verify analytics tracking
+- ✅ Test on mobile devices
+- ✅ Check console for any errors
 
 ## 🔧 Configuration
 

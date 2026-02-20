@@ -7,10 +7,22 @@ export function calculateLeadScore(userType: 'Parent' | 'School', leadData: Part
   let score = 0
 
   if (userType === 'Parent') {
-    // Grade 3–8 → +20
-    const grade = parseInt(leadData.grade_or_role || '0')
-    if (grade >= 3 && grade <= 8) {
+    // Grade 3–8 → +20 (handles both grouped and individual grades)
+    const gradeValue = leadData.grade_or_role || ''
+    const gradeLower = gradeValue.toLowerCase()
+    
+    // Check for grouped grades (Grades 3–5, Grades 6–8)
+    if (gradeLower.includes('grades 3–5') || gradeLower.includes('grades 3-5') || 
+        gradeLower.includes('grades 6–8') || gradeLower.includes('grades 6-8') ||
+        gradeLower.includes('3–5') || gradeLower.includes('3-5') ||
+        gradeLower.includes('6–8') || gradeLower.includes('6-8')) {
       score += 20
+    } else {
+      // Fallback: check for individual grade numbers
+      const grade = parseInt(gradeValue)
+      if (grade >= 3 && grade <= 8) {
+        score += 20
+      }
     }
 
     // Interested in Coding → +15

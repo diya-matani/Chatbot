@@ -7,17 +7,17 @@ interface SuccessScreenProps {
 
 export default function SuccessScreen({ leadTemperature, onReset }: SuccessScreenProps) {
   const temperatureColors = {
-    HOT: 'bg-red-100 text-red-800 border-red-300',
-    WARM: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-    COLD: 'bg-blue-100 text-blue-800 border-blue-300',
+    HOT: 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 border-red-300 dark:border-red-700',
+    WARM: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700',
+    COLD: 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700',
   }
 
   return (
     <div className="flex flex-col items-center justify-center h-full p-6 text-center animate-fade-in">
       <div className="mb-4">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 mx-auto">
+        <div className="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-4 mx-auto">
           <svg
-            className="w-8 h-8 text-green-600"
+            className="w-8 h-8 text-green-600 dark:text-green-400"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -30,8 +30,8 @@ export default function SuccessScreen({ leadTemperature, onReset }: SuccessScree
             />
           </svg>
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">🎉 Success!</h2>
-        <p className="text-gray-600 mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">🎉 Success!</h2>
+        <p className="text-gray-600 dark:text-gray-300 mb-6">
           Your demo request has been shared with our academic team.
           <br />
           You will receive a confirmation within 24 hours.
@@ -45,7 +45,7 @@ export default function SuccessScreen({ leadTemperature, onReset }: SuccessScree
       {onReset && (
         <button
           onClick={onReset}
-          className="px-4 py-2 text-sm text-blue-600 hover:text-blue-700 underline"
+          className="px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline"
         >
           Start New Conversation
         </button>
