@@ -1,73 +1,218 @@
-# WizKlub Chatbot Prototype
+# WizKlub High-Conversion AI Chatbot
 
-A **working chatbot prototype** for [WizKlub.com](https://wizklub.com) that engages visitors, qualifies leads (Parents vs Schools), collects contact details, and drives demo bookings.
+A production-ready, high-conversion chatbot prototype for WizKlub.com built with Next.js, Tailwind CSS, and OpenAI API.
 
-## Features
+## 🎯 Features
 
-- **Dual user flows**: Parent (exploring STEM programs) and School (partnership interest)
-- **Structured qualification**: Child age/interest (parents); school name, role, grades, reach (schools)
-- **Lead capture**: Name, phone, email, user type — all stored and visible in the Leads dashboard
-- **Lead scoring**: Rule-based score (0–100%) from qualification answers; shown in dashboard
-- **Conversion CTA**: “Book a demo” / “Just call me” with confirmation and optional demo link
-- **Dashboard**: View all captured leads (stored in browser for prototype; ready for CRM integration)
+- ✅ **State Machine Architecture** - Clean, maintainable conversation flow
+- ✅ **Progress Bar** - Shows "Step X of 6" with visual progress
+- ✅ **Lead Scoring** - Automatic scoring and temperature (HOT/WARM/COLD)
+- ✅ **Success Screen** - Beautiful completion screen with lead temperature badge
+- ✅ **Input Validation** - Email, phone, and field validation
+- ✅ **Analytics Tracking** - Comprehensive event tracking
+- ✅ **Smooth Animations** - Fade-in, slide-up, and typing indicators
+- ✅ **Responsive Design** - Clean white + blue theme
+- ✅ **Modular Components** - Well-organized, reusable code
 
-## Quick start
+## 🚀 Quick Start
+
+### 1. Install Dependencies
 
 ```bash
 npm install
+```
+
+### 2. Set Up Environment Variables
+
+Create a `.env.local` file:
+
+```env
+OPENAI_API_KEY=your_openai_api_key_here
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+### 3. Run Development Server
+
+```bash
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173). Click the chat button (bottom right) and go through either **Parent** or **School** flow.
+### 4. Open Browser
 
-## Deploy (shareable link)
+Navigate to [http://localhost:3000](http://localhost:3000)
 
-### Vercel (recommended)
-
-1. Push this repo to GitHub.
-2. Go to [vercel.com](https://vercel.com) → **Add New Project** → Import your repo.
-3. Leave build settings as default (Vite): **Build command** `npm run build`, **Output directory** `dist`.
-4. Deploy. Your chatbot will be live at `https://your-project.vercel.app`.
-
-### Netlify
-
-1. Push to GitHub.
-2. In Netlify: **Add new site** → **Import from Git** → choose repo.
-3. Build command: `npm run build`, Publish directory: `dist`.
-4. Deploy. Share the Netlify URL.
-
-## Project structure
+## 📁 Project Structure
 
 ```
-Chatbot/
-├── src/
-│   ├── App.jsx              # Landing + nav + dashboard view
-│   ├── Dashboard.jsx        # Leads table (CRM mockup)
-│   ├── chat/
-│   │   ├── conversationEngine.js  # Rule-based flow, steps, lead scoring, save
-│   │   ├── ChatWidget.jsx   # FAB + chat window
-│   │   ├── MessageList.jsx  # Messages + typing + quick replies
-│   │   ├── MessageBubble.jsx
-│   │   ├── QuickReplies.jsx
-│   │   └── ChatInput.jsx
-│   └── index.css
-├── index.html
-├── package.json
-└── README.md
+├── app/
+│   ├── api/
+│   │   └── chat/
+│   │       └── route.ts          # OpenAI API integration
+│   ├── globals.css               # Global styles + animations
+│   ├── layout.tsx                # Root layout
+│   └── page.tsx                  # Home page
+├── components/
+│   ├── ChatbotWidget.tsx         # Main chatbot component
+│   ├── MessageBubble.tsx         # Message display
+│   ├── ChatInput.tsx             # Input with validation
+│   ├── ProgressBar.tsx           # Progress indicator
+│   └── SuccessScreen.tsx         # Completion screen
+├── lib/
+│   ├── stateMachine.ts           # State machine logic
+│   ├── leadScorer.ts             # Lead scoring & temperature
+│   ├── analytics.ts              # Analytics tracking
+│   ├── leadStorage.ts            # Lead storage utilities
+│   └── types.ts                   # TypeScript types
+└── package.json
 ```
 
-## CRM integration (production)
+## 🧠 State Machine Flow
 
-Leads are currently saved to `localStorage` under the key `wizklub_leads`. To plug into a CRM or backend:
+### Parent Flow (6 steps):
+1. Welcome → User Type Selection
+2. Full Name
+3. Child Grade
+4. Interest (Coding/Robotics/Math/Not Sure)
+5. City
+6. Email
+7. Phone
+8. Recommendation → Success
 
-1. In `conversationEngine.js`, replace or complement `saveLead(lead)` with a `fetch()` call to your API, e.g. `POST /api/leads`.
-2. In `Dashboard.jsx`, replace `getLeads()` with an API call to `GET /api/leads` (or use the same backend and sync localStorage for demo).
+### School Flow (6 steps):
+1. Welcome → User Type Selection
+2. Full Name
+3. Role
+4. Student Strength
+5. Curriculum
+6. City
+7. Email
+8. Phone
+9. Recommendation → Success
 
-## Optional enhancements
+## 📊 Lead Scoring
 
-- **AI-powered replies**: Add an optional step that sends the last user message to an LLM API (e.g. OpenAI) for context-aware answers before continuing the flow.
-- **Webhook**: Add a serverless function (e.g. Vercel serverless) that receives lead payloads and forwards to Zapier/Make/CRM.
+### Parent Scoring:
+- Grade 3–8 → +20 points
+- Interested in Coding → +15 points
+- Provided Phone → +20 points
+
+### School Scoring:
+- Role = Principal/Coordinator → +30 points
+- Strength >1000 → +25 points
+- Integrated curriculum → +20 points
+
+### Lead Temperature:
+- **HOT:** Score ≥ 60
+- **WARM:** Score 30–59
+- **COLD:** Score < 30
+
+## 📈 Analytics Events
+
+The chatbot tracks:
+- `conversation_started`
+- `user_type_selected`
+- `lead_completed`
+- `demo_clicked`
+- `counselor_clicked`
+- `brochure_downloaded`
+- `partnership_call_clicked`
+- `proposal_deck_clicked`
+
+All events are logged to console and stored in localStorage.
+
+## 💾 Lead Data Structure
+
+```json
+{
+  "id": "timestamp",
+  "name": "",
+  "userType": "Parent" | "School",
+  "grade_or_role": "",
+  "interest_or_strength": "",
+  "curriculum": "",
+  "city": "",
+  "email": "",
+  "phone": "",
+  "leadScore": 0,
+  "leadTemperature": "HOT" | "WARM" | "COLD",
+  "analytics": {
+    "startedAt": "ISO string",
+    "completedAt": "ISO string",
+    "demoClicked": false
+  }
+}
+```
+
+## 🎨 UI Features
+
+- **Clean Design:** White + blue theme with rounded corners
+- **Message Bubbles:** Bot (left, gray) / User (right, blue)
+- **Progress Bar:** Visual step indicator with percentage
+- **Typing Indicator:** Animated dots while bot "types"
+- **Success Screen:** Completion screen with temperature badge
+- **Smooth Animations:** Fade-in, slide-up transitions
+- **Quick Replies:** Button-based options for faster interaction
+- **Validation:** Real-time error messages
+
+## 🤖 AI Integration
+
+The chatbot uses OpenAI GPT-4o-mini with:
+- Context-aware system prompts
+- Personalized responses based on user type
+- Objection handling
+- Conversion-focused messaging
+
+## 🚀 Deployment
+
+### Build for Production
+
+```bash
+npm run build
+```
+
+### Deploy to Vercel
+
+```bash
+vercel
+```
+
+Or connect your GitHub repository to Vercel for automatic deployments.
+
+## 🔧 Configuration
+
+### Environment Variables
+
+- `OPENAI_API_KEY` - Your OpenAI API key (required)
+- `NEXT_PUBLIC_APP_URL` - Application URL (optional)
+
+### Customization
+
+- **Colors:** Edit `tailwind.config.js` to change theme colors
+- **States:** Modify `lib/stateMachine.ts` to adjust conversation flow
+- **Scoring:** Update `lib/leadScorer.ts` to change scoring logic
+- **Analytics:** Extend `lib/analytics.ts` to integrate with your analytics service
+
+## 📝 Notes
+
+- Leads are stored in browser localStorage (for demo purposes)
+- In production, integrate with your CRM/database
+- Analytics events are logged to console and localStorage
+- In production, send analytics to your analytics service (e.g., Google Analytics, Mixpanel)
+
+## 🎯 Conversion Strategy
+
+The chatbot is designed to:
+1. **Engage** visitors immediately with friendly welcome
+2. **Segment** into Parent or School flows
+3. **Qualify** leads through progressive data collection
+4. **Score** leads automatically
+5. **Convert** with personalized recommendations and clear CTAs
+6. **Complete** with success screen showing lead temperature
+
+## 📄 License
+
+MIT
 
 ---
 
-Built for WizKlub visitor engagement and demo booking conversion.
+Built with ❤️ for WizKlub

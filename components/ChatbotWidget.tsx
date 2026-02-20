@@ -1,0 +1,353 @@
+'use client'
+
+import { useState, useRef, useEffect } from 'react'
+import {
+  type ConversationState,
+  type UserType,
+  getNextState,
+  getStateConfig,
+  stateMachine,
+} from '@/lib/stateMachine'
+import { calculateLeadScore, getLeadTemperature } from '@/lib/leadScorer'
+import { saveLead } from '@/lib/leadStorage'
+import { trackEvent } from '@/lib/analytics'
+import type { Message, LeadData } from '@/lib/types'
+import MessageBubble from './MessageBubble'
+import ChatInput from './ChatInput'
+import ProgressBar from './ProgressBar'
+import SuccessScreen from './SuccessScreen'
+
+export default function ChatbotWidget() {
+  const [isOpen, setIsOpen] = useState(false)
+  const [isTyping, setIsTyping] = useState(false)
+  const [validationError, setValidationError] = useState<string | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const conversationStartTime = useRef<Date | null>(null)
+
+  const [state, setState] = useState<ConversationState>('welcome')
+  const [userType, setUserType] = useState<UserType>(null)
+  const [leadData, setLeadData] = useState<Partial<LeadData>>({})
+  const [messages, setMessages] = useState<Message[]>([])
+  const [leadTemperature, setLeadTemperature] = useState<'HOT' | 'WARM' | 'COLD'>('COLD')
+
+  useEffect(() => {
+    if (isOpen && messages.length === 0) {
+      conversationStartTime.current = new Date()
+      const config = getStateConfig('welcome')
+      addMessage('assistant', config.question, config.quickReplies)
+      trackEvent('conversation_started')
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages, isTyping])
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const addMessage = (
+    role: 'user' | 'assistant',
+    content: string,
+    quickReplies?: string[]
+  ) => {
+    const newMessage: Message = {
+      id: Date.now().toString() + Math.random(),
+      role,
+      content,
+      timestamp: new Date(),
+      quickReplies,
+    }
+    setMessages((prev) => [...prev, newMessage])
+  }
+
+  const updateLeadData = (field: keyof LeadData, value: string) => {
+    setLeadData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleUserInput = async (input: string) => {
+    if (!input.trim()) return
+
+    const currentConfig = getStateConfig(state)
+    setValidationError(null)
+
+    // Validate input if validation function exists
+    if (currentConfig.validation) {
+      const validationResult = currentConfig.validation(input)
+      if (validationResult !== true) {
+        setValidationError(validationResult as string)
+        return
+      }
+    }
+
+    // Add user message
+    addMessage('user', input)
+
+    // Update lead data based on current state
+    switch (state) {
+      case 'user_type':
+        const lower = input.toLowerCase()
+        if (lower.includes('parent') || lower.includes('1')) {
+          setUserType('Parent')
+          trackEvent('user_type_selected', { userType: 'Parent' })
+        } else if (lower.includes('school') || lower.includes('2')) {
+          setUserType('School')
+          trackEvent('user_type_selected', { userType: 'School' })
+        }
+        break
+
+      case 'parent_name':
+        updateLeadData('name', input)
+        break
+      case 'parent_grade':
+        updateLeadData('grade_or_role', input)
+        break
+      case 'parent_interest':
+        updateLeadData('interest_or_strength', input)
+        break
+      case 'parent_city':
+        updateLeadData('city', input)
+        break
+      case 'parent_email':
+        updateLeadData('email', input)
+        break
+      case 'parent_phone':
+        updateLeadData('phone', input)
+        break
+
+      case 'school_name':
+        updateLeadData('name', input)
+        break
+      case 'school_role':
+        updateLeadData('grade_or_role', input)
+        break
+      case 'school_strength':
+        updateLeadData('interest_or_strength', input)
+        break
+      case 'school_curriculum':
+        updateLeadData('curriculum', input)
+        break
+      case 'school_city':
+        updateLeadData('city', input)
+        break
+      case 'school_email':
+        updateLeadData('email', input)
+        break
+      case 'school_phone':
+        updateLeadData('phone', input)
+        break
+
+      case 'recommendation':
+        if (input.includes('Demo') || input.includes('demo') || input.includes('Live Demo')) {
+          trackEvent('demo_clicked')
+          updateLeadData('analytics', { demoClicked: true } as any)
+        } else if (input.includes('Counselor') || input.includes('counselor')) {
+          trackEvent('counselor_clicked')
+        } else if (input.includes('Brochure') || input.includes('brochure')) {
+          trackEvent('brochure_downloaded')
+        } else if (input.includes('Partnership Call') || input.includes('partnership')) {
+          trackEvent('partnership_call_clicked')
+        } else if (input.includes('Proposal') || input.includes('proposal')) {
+          trackEvent('proposal_deck_clicked')
+        }
+        break
+    }
+
+    // Get next state
+    const nextState = getNextState(state, input, userType)
+    const nextConfig = getStateConfig(nextState)
+
+    // Handle recommendation state - show recommendation if we're entering it
+    if (nextState === 'recommendation' && state !== 'recommendation') {
+      let recommendationText = ''
+      let quickReplies: string[] = []
+
+      if (userType === 'Parent') {
+        const grade = leadData.grade_or_role || 'X'
+        recommendationText = `Based on Grade ${grade}, our Computational Thinking + Coding pathway is ideal for your child. What would you like to do next?`
+        quickReplies = ['Book FREE Live Demo', 'Talk to Academic Counselor', 'Download Brochure']
+      } else if (userType === 'School') {
+        recommendationText = `Based on your school's needs, I recommend our Integrated STEM Curriculum Partnership Model. What would you like to do next?`
+        quickReplies = ['Schedule Partnership Call', 'Get Proposal Deck']
+      }
+
+      setState(nextState)
+      setIsTyping(true)
+      setTimeout(() => {
+        setIsTyping(false)
+        addMessage('assistant', recommendationText, quickReplies)
+      }, 800)
+      return
+    }
+
+    // Handle success state
+    if (nextState === 'success') {
+      const finalLeadData: LeadData = {
+        id: Date.now().toString(),
+        name: leadData.name || '',
+        userType: userType!,
+        grade_or_role: leadData.grade_or_role || '',
+        interest_or_strength: leadData.interest_or_strength || '',
+        curriculum: leadData.curriculum || '',
+        city: leadData.city || '',
+        email: leadData.email || '',
+        phone: leadData.phone || '',
+        leadScore: calculateLeadScore(userType!, leadData),
+        leadTemperature: getLeadTemperature(calculateLeadScore(userType!, leadData)),
+        analytics: {
+          startedAt: conversationStartTime.current?.toISOString() || new Date().toISOString(),
+          completedAt: new Date().toISOString(),
+          demoClicked: (leadData as any).analytics?.demoClicked || false,
+        },
+      }
+
+      setLeadTemperature(finalLeadData.leadTemperature)
+      saveLead(finalLeadData)
+      trackEvent('lead_completed', {
+        userType: userType!,
+        leadScore: finalLeadData.leadScore,
+        leadTemperature: finalLeadData.leadTemperature,
+      })
+
+      setState(nextState)
+      return
+    }
+
+    // Update state
+    setState(nextState)
+
+    // Show typing indicator
+    setIsTyping(true)
+
+    // Get bot response
+    setTimeout(() => {
+      setIsTyping(false)
+      const botMsg = getStateConfig(nextState)
+      addMessage('assistant', botMsg.question, botMsg.quickReplies)
+    }, 800)
+  }
+
+  const handleReset = () => {
+    setState('welcome')
+    setUserType(null)
+    setLeadData({})
+    setMessages([])
+    setValidationError(null)
+    conversationStartTime.current = new Date()
+    const config = getStateConfig('welcome')
+    addMessage('assistant', config.question, config.quickReplies)
+    trackEvent('conversation_started')
+  }
+
+  const currentConfig = getStateConfig(state)
+  const showProgressBar = state !== 'welcome' && state !== 'success' && state !== 'recommendation'
+  const isComplete = state === 'success'
+
+  return (
+    <>
+      {/* Floating Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 z-50 hover:scale-110"
+        aria-label="Open chat"
+      >
+        {isOpen ? (
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        ) : (
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+            />
+          </svg>
+        )}
+      </button>
+
+      {/* Chat Window */}
+      {isOpen && (
+        <div className="fixed bottom-24 right-6 w-96 h-[600px] bg-white rounded-lg shadow-2xl flex flex-col z-50 border border-gray-200 animate-slide-up">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 rounded-t-lg flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center font-bold text-lg">
+                W
+              </div>
+              <div>
+                <h3 className="font-semibold">WizKlub Assistant</h3>
+                <p className="text-xs text-blue-100">Online</p>
+              </div>
+            </div>
+            {state !== 'success' && (
+              <button
+                onClick={handleReset}
+                className="text-white/80 hover:text-white text-sm underline"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+
+          {/* Progress Bar */}
+          {showProgressBar && (
+            <ProgressBar
+              currentStep={currentConfig.stepNumber}
+              totalSteps={currentConfig.totalSteps}
+            />
+          )}
+
+          {/* Messages or Success Screen */}
+          {isComplete ? (
+            <SuccessScreen leadTemperature={leadTemperature} onReset={handleReset} />
+          ) : (
+            <>
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+                {messages.map((message) => (
+                  <MessageBubble
+                    key={message.id}
+                    message={message}
+                    onQuickReply={handleUserInput}
+                  />
+                ))}
+                {isTyping && (
+                  <div className="flex items-center gap-2 text-gray-500 text-sm animate-fade-in">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                      <div
+                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                        style={{ animationDelay: '0.1s' }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                        style={{ animationDelay: '0.2s' }}
+                      ></div>
+                    </div>
+                    <span>WizKlub is typing...</span>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Input */}
+              <ChatInput
+                onSend={handleUserInput}
+                disabled={isTyping || isComplete}
+                validationError={validationError}
+              />
+            </>
+          )}
+        </div>
+      )}
+    </>
+  )
+}
