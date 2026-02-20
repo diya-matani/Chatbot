@@ -406,13 +406,41 @@ export function getBotContent(state) {
       } else {
         const programRec = getProgramRecommendation(payload.childAge)
         const name = payload.name ? `, ${payload.name}` : ''
-        cta = `Thanks${name}! Based on your child's grade, we recommend ${programRec}. Would you like to book a **FREE 30-min live demo this week** to see it in action?`
+        cta = `Thanks${name}! Based on your child's grade and interests, we recommend ${programRec}. Would you like to book a **FREE 30-min live demo this week** to see it in action?`
       }
       return {
         text: cta,
         quickReplies: userType === USER_TYPE.SCHOOL 
-          ? ['Yes, book FREE demo', 'Just call me']
-          : ['Yes, book FREE demo', 'Just call me'],
+          ? ['Yes, book FREE demo', 'Just call me', 'Not sure yet']
+          : ['Yes, book FREE demo', 'Just call me', 'Not sure yet'],
+      }
+    }
+
+    case STEPS.HANDLE_OBJECTION: {
+      const objectionMsg = (userMessage || '').toLowerCase()
+      let response
+      
+      if (objectionMsg.includes('expensive') || objectionMsg.includes('cost') || objectionMsg.includes('price') || objectionMsg.includes('afford')) {
+        response = userType === USER_TYPE.PARENT
+          ? "I completely understand! We offer flexible payment plans and scholarships. The FREE demo shows you exactly what your child will learn—no commitment. Plus, many parents find our programs more affordable than private tutoring. Would you like to see the demo first?"
+          : "I understand budget is important! We offer competitive partnership rates and flexible payment options. The FREE demo helps you see the ROI—improved student engagement and academic performance. Would you like to explore this further?"
+      } else if (objectionMsg.includes('time') || objectionMsg.includes('busy') || objectionMsg.includes('schedule')) {
+        response = userType === USER_TYPE.PARENT
+          ? "I hear you! We offer flexible scheduling—weekday evenings and weekends. Our programs are designed to fit busy families. The demo is just 30 minutes and can be scheduled at your convenience. Would that work?"
+          : "Absolutely! We work around your school's schedule. Our programs can be integrated into existing timetables or run as after-school. The demo is just 30 minutes—we can schedule it whenever works for you."
+      } else if (objectionMsg.includes('think') || objectionMsg.includes('later') || objectionMsg.includes('not sure')) {
+        response = userType === USER_TYPE.PARENT
+          ? "That's perfectly fine! Many parents feel the same way initially. The FREE demo is no-obligation—just 30 minutes to see if it's the right fit. No pressure, just valuable insights. Would you like to schedule it?"
+          : "I understand! Partnership decisions take time. The FREE demo is just 30 minutes with no commitment—it helps you make an informed decision. Would you like to see what we offer?"
+      } else {
+        response = userType === USER_TYPE.PARENT
+          ? "I understand your concern! The FREE demo is just 30 minutes with no obligation. It's a great way to see if our program fits your child's needs. Many parents find it really helpful. Would you like to give it a try?"
+          : "I appreciate your consideration! The FREE demo is just 30 minutes—no commitment. It's a great opportunity to see how WizKlub can benefit your students. Would you like to schedule it?"
+      }
+      
+      return {
+        text: response,
+        quickReplies: ['Yes, let\'s do it', 'Just call me', 'Maybe later'],
       }
     }
 
