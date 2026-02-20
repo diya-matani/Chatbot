@@ -103,6 +103,8 @@ const ChatbotWidget = forwardRef<ChatbotWidgetRef>((props, ref) => {
     const currentConfig = getStateConfig(state)
     setValidationError(null)
 
+    const normalisedInput = input.toLowerCase()
+
     // Validate input if validation function exists
     if (currentConfig.validation) {
       const validationResult = currentConfig.validation(input)
@@ -116,14 +118,16 @@ const ChatbotWidget = forwardRef<ChatbotWidgetRef>((props, ref) => {
     addMessage('user', input)
 
     // Update lead data based on current state
+    const isParentInterestNotSure =
+      state === 'parent_interest' && normalisedInput.includes('not sure')
+
     switch (state) {
       case 'welcome':
       case 'user_type':
-        const lower = input.toLowerCase()
-        if (lower.includes('parent') || lower.includes('1')) {
+        if (normalisedInput.includes('parent') || normalisedInput.includes('1')) {
           setUserType('Parent')
           trackEvent('user_type_selected', { userType: 'Parent' })
-        } else if (lower.includes('school') || lower.includes('2')) {
+        } else if (normalisedInput.includes('school') || normalisedInput.includes('2')) {
           setUserType('School')
           trackEvent('user_type_selected', { userType: 'School' })
         }
@@ -256,7 +260,23 @@ const ChatbotWidget = forwardRef<ChatbotWidgetRef>((props, ref) => {
     setTimeout(() => {
       setIsTyping(false)
       const botMsg = getStateConfig(nextState)
-      addMessage('assistant', botMsg.question, botMsg.quickReplies)
+
+      let content = botMsg.question
+      const quickReplies = botMsg.quickReplies
+
+      // If parent clicked "Not Sure" on interest, first explain key programs,
+      // then ask the next question.
+      if (isParentInterestNotSure) {
+        const overview =
+          'No worries — here’s a quick overview of our core STEM programs:\n\n' +
+          '• Robotics & Coding Program (Grades 1–9) – Hands-on coding and robotics projects integrated into the school curriculum.\n' +
+          '• Young Product Designer Program (YPDP) (Grades 3–9) – Kids design and build real tech products using hardware kits and block-based coding.\n' +
+          '• Higher Order Thinking Skills (HOTS) (Grades 1–8) – Strengthens critical thinking, logical reasoning, and problem-solving.\n\n'
+
+        content = overview + content
+      }
+
+      addMessage('assistant', content, quickReplies)
     }, 800)
   }
 
