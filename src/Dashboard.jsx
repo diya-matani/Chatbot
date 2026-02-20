@@ -40,6 +40,7 @@ export default function Dashboard() {
                 <th>City</th>
                 <th>Details</th>
                 <th>Score</th>
+                <th>Quality</th>
                 <th>Demo</th>
                 <th>Time</th>
               </tr>
@@ -83,16 +84,21 @@ export default function Dashboard() {
                     )}
                   </td>
                   <td>
+                    <span className={styles.scoreValue}>
+                      {lead.leadScore || 0} pts
+                    </span>
+                  </td>
+                  <td>
                     <span
                       className={
-                        lead.leadScore >= 70
-                          ? styles.scoreHigh
-                          : lead.leadScore >= 40
-                            ? styles.scoreMid
-                            : styles.scoreLow
+                        lead.leadQuality === 'Hot'
+                          ? styles.qualityHot
+                          : lead.leadQuality === 'Warm'
+                            ? styles.qualityWarm
+                            : styles.qualityCold
                       }
                     >
-                      {lead.leadScore}%
+                      {lead.leadQuality || 'Cold'}
                     </span>
                   </td>
                   <td>{lead.demoBooked ? 'Yes' : 'No'}</td>

@@ -1,6 +1,15 @@
 /**
- * Rule-based conversation engine for WizKlub chatbot.
- * Handles Parent and School flows, qualification, lead capture, and lead scoring.
+ * WizKlub AI Enrollment Assistant
+ * 
+ * Goal: Identify visitor type, collect structured lead details, qualify leads,
+ * recommend suitable programs, and guide toward demo booking or sales conversation.
+ * 
+ * Conversation Rules:
+ * - Warm, professional, and concise
+ * - Ask one question at a time
+ * - Handle objections smartly
+ * - Keep tone supportive and aspirational
+ * - Always guide conversation toward conversion
  */
 
 export const USER_TYPE = { PARENT: 'Parent', SCHOOL: 'School' }
@@ -27,6 +36,7 @@ export const STEPS = {
   EMAIL: 'email',
   CITY: 'city',
   CONFIRM_BOOK_DEMO: 'confirm_book_demo',
+  HANDLE_OBJECTION: 'handle_objection',
   COMPLETE: 'complete',
 }
 
@@ -46,24 +56,33 @@ const SCHOOL_REACH_OPTIONS = ['Under 100', '100–500', '500+']
 const SCHOOL_CURRICULUM_OPTIONS = ['CBSE', 'ICSE', 'IB', 'State Board', 'Other']
 const SCHOOL_PROGRAM_TYPE_OPTIONS = ['After-school program', 'Integrated curriculum', 'Both']
 
-/** Lead score weights for parents */
+/**
+ * Lead Scoring System
+ * Hot Lead: >60 | Warm: 30-60 | Cold: <30
+ */
+
+// Parent Lead Scoring
 const PARENT_SCORE = {
-  age_6_8: 2,
-  age_9_11: 3,
-  age_12_15: 2,
-  interest_stem: 3,
-  interest_math_science: 2,
-  interest_hots: 2,
-  interest_unsure: 1,
+  grade_3_8: 20,        // Grade between 3-8
+  coding_interest: 15,  // Interested in coding
+  demo_intent: 30,      // Wants to book demo
+  phone_provided: 20,   // Phone number provided
 }
 
-/** Lead score weights for schools */
+// School Lead Scoring
 const SCHOOL_SCORE = {
-  reach_under_100: 1,
-  reach_100_500: 2,
-  reach_500_plus: 3,
-  grades_both: 2,
-  grades_primary_or_middle: 1,
+  decision_maker: 30,           // Is decision maker
+  students_1000_plus: 25,        // 1000+ students
+  integrated_curriculum: 20,     // Wants integrated curriculum
+}
+
+/**
+ * Get lead quality label based on score
+ */
+export function getLeadQuality(score) {
+  if (score > 60) return { label: 'Hot', color: 'hot' }
+  if (score >= 30) return { label: 'Warm', color: 'warm' }
+  return { label: 'Cold', color: 'cold' }
 }
 
 export function getInitialState() {
@@ -114,10 +133,17 @@ export function getNextStep(state, userMessage) {
     case STEPS.PARENT_CHILD_AGE:
       next.payload.childAge = userMessage.trim()
       next.step = STEPS.PARENT_CURRICULUM
-      if (msg.includes('6') || msg.includes('7') || msg.includes('8')) next.leadScore = (next.leadScore || 0) + PARENT_SCORE.age_6_8
-      else if (msg.includes('9') || msg.includes('10') || msg.includes('11')) next.leadScore = (next.leadScore || 0) + PARENT_SCORE.age_9_11
-      else if (msg.includes('12') || msg.includes('13') || msg.includes('14') || msg.includes('15')) next.leadScore = (next.leadScore || 0) + PARENT_SCORE.age_12_15
-      next.maxScore = (next.maxScore || 0) + 3
+      // Grade 3-8 gets +20 points
+      const ageNum = parseInt(userMessage.match(/\d+/)?.[0] || '0')
+      const gradeNum = userMessage.toLowerCase().includes('grade') 
+        ? parseInt(userMessage.match(/grade\s*(\d+)/i)?.[1] || '0')
+        : 0
+      if ((ageNum >= 8 && ageNum <= 11) || (gradeNum >= 3 && gradeNum <= 8) || 
+          msg.includes('grade 3') || msg.includes('grade 4') || msg.includes('grade 5') || 
+          msg.includes('grade 6') || msg.includes('grade 7') || msg.includes('grade 8') ||
+          msg.includes('9') || msg.includes('10') || msg.includes('11')) {
+        next.leadScore = (next.leadScore || 0) + PARENT_SCORE.grade_3_8
+      }
       return next
 
     case STEPS.PARENT_CURRICULUM:
@@ -128,11 +154,10 @@ export function getNextStep(state, userMessage) {
     case STEPS.PARENT_INTEREST:
       next.payload.interest = userMessage.trim()
       next.step = STEPS.PARENT_MODE
-      if (msg.includes('coding') || msg.includes('robotics')) next.leadScore = (next.leadScore || 0) + PARENT_SCORE.interest_stem
-      else if (msg.includes('math')) next.leadScore = (next.leadScore || 0) + PARENT_SCORE.interest_math_science
-      else if (msg.includes('full')) next.leadScore = (next.leadScore || 0) + PARENT_SCORE.interest_stem
-      else next.leadScore = (next.leadScore || 0) + PARENT_SCORE.interest_unsure
-      next.maxScore = (next.maxScore || 0) + 3
+      // Coding interest gets +15 points
+      if (msg.includes('coding')) {
+        next.leadScore = (next.leadScore || 0) + PARENT_SCORE.coding_interest
+      }
       return next
 
     case STEPS.PARENT_MODE:
@@ -153,9 +178,10 @@ export function getNextStep(state, userMessage) {
     case STEPS.SCHOOL_DECISION_MAKER:
       next.payload.decisionMaker = userMessage.trim()
       next.step = STEPS.SCHOOL_GRADES
-      if (msg.includes('yes') || msg.includes('i am')) next.leadScore = (next.leadScore || 0) + 3
-      else if (msg.includes('connect')) next.leadScore = (next.leadScore || 0) + 2
-      next.maxScore = (next.maxScore || 0) + 3
+      // Decision maker gets +30 points
+      if (msg.includes('yes') || msg.includes('i am')) {
+        next.leadScore = (next.leadScore || 0) + SCHOOL_SCORE.decision_maker
+      }
       return next
 
     case STEPS.SCHOOL_GRADES:
@@ -169,10 +195,11 @@ export function getNextStep(state, userMessage) {
     case STEPS.SCHOOL_REACH:
       next.payload.reach = userMessage.trim()
       next.step = STEPS.SCHOOL_CURRICULUM
-      if (msg.includes('500') || msg.includes('500+')) next.leadScore = (next.leadScore || 0) + SCHOOL_SCORE.reach_500_plus
-      else if (msg.includes('100') && !msg.includes('under')) next.leadScore = (next.leadScore || 0) + SCHOOL_SCORE.reach_100_500
-      else next.leadScore = (next.leadScore || 0) + SCHOOL_SCORE.reach_under_100
-      next.maxScore = (next.maxScore || 0) + 3
+      // 1000+ students gets +25 points
+      const reachNum = parseInt(userMessage.match(/\d+/)?.[0] || '0')
+      if (reachNum >= 1000 || msg.includes('1000') || msg.includes('1000+')) {
+        next.leadScore = (next.leadScore || 0) + SCHOOL_SCORE.students_1000_plus
+      }
       return next
 
     case STEPS.SCHOOL_CURRICULUM:
@@ -183,6 +210,10 @@ export function getNextStep(state, userMessage) {
     case STEPS.SCHOOL_PROGRAM_TYPE:
       next.payload.programType = userMessage.trim()
       next.step = STEPS.NAME
+      // Integrated curriculum gets +20 points
+      if (msg.includes('integrated') || msg.includes('both')) {
+        next.leadScore = (next.leadScore || 0) + SCHOOL_SCORE.integrated_curriculum
+      }
       return next
 
     case STEPS.NAME:
@@ -193,6 +224,10 @@ export function getNextStep(state, userMessage) {
     case STEPS.PHONE:
       next.payload.phone = userMessage.trim()
       next.step = STEPS.EMAIL
+      // Phone provided gets +20 points (for parents)
+      if (userType === USER_TYPE.PARENT && userMessage.trim().length > 0) {
+        next.leadScore = (next.leadScore || 0) + PARENT_SCORE.phone_provided
+      }
       return next
 
     case STEPS.EMAIL:
@@ -207,7 +242,11 @@ export function getNextStep(state, userMessage) {
 
     case STEPS.CONFIRM_BOOK_DEMO:
       next.step = STEPS.COMPLETE
-      next.payload.demoBooked = msg.includes('book') || msg.includes('yes') || msg === '1'
+      next.payload.demoBooked = msg.includes('book') || msg.includes('yes') || msg === '1' || msg.includes('demo')
+      // Demo intent gets +30 points (for parents)
+      if (userType === USER_TYPE.PARENT && next.payload.demoBooked) {
+        next.leadScore = (next.leadScore || 0) + PARENT_SCORE.demo_intent
+      }
       return next
 
     default:
@@ -251,111 +290,111 @@ export function getBotContent(state) {
   switch (step) {
     case STEPS.WELCOME:
       return {
-        text: "Hi 👋 Are you looking for **STEM programs for your child** or exploring **school partnerships**?",
-        quickReplies: ['STEM programs for my child', 'School partnerships'],
+        text: "Hello! 👋 I'm WizKlub's AI Enrollment Assistant. I'm here to help you find the perfect STEM learning solution. Are you exploring **programs for your child** or interested in **school partnerships**?",
+        quickReplies: ['Programs for my child', 'School partnerships'],
       }
 
     case STEPS.USER_TYPE:
       return {
-        text: "Are you looking for **STEM programs for your child** or exploring **school partnerships**?",
-        quickReplies: ['STEM programs for my child', 'School partnerships'],
+        text: "I'd love to help! Are you exploring **programs for your child** or interested in **school partnerships**?",
+        quickReplies: ['Programs for my child', 'School partnerships'],
       }
 
     case STEPS.PARENT_CHILD_AGE:
       return {
-        text: "Perfect! To recommend the best **STEM program** for your child, what's their age or grade? (e.g. 8 years, Grade 3)",
+        text: "Wonderful! To recommend the perfect program for your child, could you share their age or grade? (e.g., 8 years or Grade 3)",
         quickReplies: ['6–8 years', '9–11 years', '12–15 years'],
       }
 
     case STEPS.PARENT_CURRICULUM:
       return {
-        text: "Got it! Which **curriculum** does your child follow? (This helps us align our programs)",
+        text: "Perfect! Which curriculum does your child follow? This helps us align our programs perfectly with their learning journey.",
         quickReplies: PARENT_CURRICULUM_OPTIONS,
       }
 
     case STEPS.PARENT_INTEREST:
       return {
-        text: "Great! What are you most interested in for your child?",
+        text: "Excellent! What area interests you most for your child's growth?",
         quickReplies: PARENT_INTERESTS,
       }
 
     case STEPS.PARENT_MODE:
       return {
-        text: "Perfect! What's your **preferred mode** of learning?",
+        text: "Great! What's your preferred learning mode? We offer flexible options to fit your schedule.",
         quickReplies: PARENT_MODE_OPTIONS,
       }
 
     case STEPS.SCHOOL_NAME:
       return {
-        text: "Excellent! We'd love to explore a **partnership** with your school. What's your school name?",
+        text: "Wonderful! I'd love to explore how WizKlub can partner with your school. What's your school name?",
         quickReplies: [],
       }
 
     case STEPS.SCHOOL_ROLE:
       return {
-        text: "Thanks! What's your **role** at the school?",
+        text: "Thank you! To better understand your needs, what's your role at the school?",
         quickReplies: SCHOOL_ROLES,
       }
 
     case STEPS.SCHOOL_DECISION_MAKER:
       return {
-        text: "Are you the **decision maker** for partnership programs, or can you connect us with the right person?",
+        text: "Perfect! Are you the decision maker for partnership programs, or would you be able to connect us with the right person?",
         quickReplies: SCHOOL_DECISION_MAKER_OPTIONS,
       }
 
     case STEPS.SCHOOL_GRADES:
       return {
-        text: "Which **grade levels** would you like to offer WizKlub programs to?",
+        text: "Excellent! Which grade levels would you like to offer WizKlub programs to?",
         quickReplies: SCHOOL_GRADES_OPTIONS,
       }
 
     case STEPS.SCHOOL_REACH:
       return {
-        text: "Perfect! Approximately how many **students** would benefit from our partnership?",
+        text: "That's great! Approximately how many students would benefit from our partnership?",
         quickReplies: SCHOOL_REACH_OPTIONS,
       }
 
     case STEPS.SCHOOL_CURRICULUM:
       return {
-        text: "Which **curriculum** does your school follow?",
+        text: "Perfect! Which curriculum does your school follow? This helps us align our programs seamlessly.",
         quickReplies: SCHOOL_CURRICULUM_OPTIONS,
       }
 
     case STEPS.SCHOOL_PROGRAM_TYPE:
       return {
-        text: "Great! Are you looking for an **after-school program** or **integrated curriculum**?",
+        text: "Wonderful! Are you looking for an after-school program or integrated curriculum?",
         quickReplies: SCHOOL_PROGRAM_TYPE_OPTIONS,
       }
 
     case STEPS.NAME:
       return {
         text: userType === USER_TYPE.PARENT
-          ? "Almost there! To book your **free demo** and get a personalized plan, what's your name?"
-          : "Great! To connect you with our **partnership team**, what's your name?",
+          ? "Perfect! We're almost done. To create your personalized learning plan and schedule your free demo, may I have your full name?"
+          : "Excellent! To connect you with our partnership team, may I have your full name?",
         quickReplies: [],
       }
 
     case STEPS.PHONE:
       return {
         text: userType === USER_TYPE.PARENT
-          ? "What's the best **phone number** to reach you for the demo?"
-          : "What's the best **phone number** to reach you about the partnership?",
+          ? "Thank you! What's the best phone number to reach you? We'll call to confirm your demo time."
+          : "Thank you! What's the best phone number to reach you? Our partnership manager will call to discuss next steps.",
         quickReplies: [],
       }
 
     case STEPS.EMAIL:
       return {
         text: userType === USER_TYPE.PARENT
-          ? "And your **email address**? We'll send demo details there."
-          : "And your **email address**? We'll send partnership information there.",
+          ? "Great! And your email address? We'll send demo details and program information there."
+          : "Perfect! And your email address? We'll send partnership details and program information there.",
         quickReplies: [],
       }
 
     case STEPS.CITY:
       return {
         text: userType === USER_TYPE.PARENT
-          ? "Which **city** are you located in? (Helps us connect you with local resources)"
-          : "Which **city** is your school located in?",
+          ? "Wonderful! Which city are you located in? This helps us connect you with local resources and instructors."
+          : "Perfect! Which city is your school located in?",
         quickReplies: [],
       }
 
@@ -403,8 +442,9 @@ export function getBotContent(state) {
 }
 
 function buildLead(state) {
-  const { userType, payload, leadScore = 0, maxScore = 0 } = state
-  const scoreNormalized = maxScore > 0 ? Math.round((leadScore / maxScore) * 100) : 0
+  const { userType, payload, leadScore = 0 } = state
+  // Use raw score (not normalized) - Hot: >60, Warm: 30-60, Cold: <30
+  const quality = getLeadQuality(leadScore)
   return {
     userType,
     name: payload.name,
@@ -427,7 +467,9 @@ function buildLead(state) {
       programType: payload.programType, // After-school/Integrated/Both
     }),
     demoBooked: payload.demoBooked,
-    leadScore: scoreNormalized,
+    leadScore: leadScore, // Raw score
+    leadQuality: quality.label, // Hot/Warm/Cold
+    leadQualityColor: quality.color,
     createdAt: new Date().toISOString(),
   }
 }

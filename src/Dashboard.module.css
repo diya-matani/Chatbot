@@ -72,17 +72,39 @@
   font-weight: 500;
 }
 
-.scoreHigh {
-  color: var(--wiz-success);
+.scoreValue {
   font-weight: 600;
+  color: var(--wiz-text);
 }
 
-.scoreMid {
-  color: var(--wiz-accent);
+.qualityHot {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: #dcfce7;
+  color: #166534;
+  font-weight: 600;
+  font-size: 0.8rem;
 }
 
-.scoreLow {
-  color: var(--wiz-text-muted);
+.qualityWarm {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: #fef3c7;
+  color: #92400e;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.qualityCold {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.8rem;
 }
 
 .details {
