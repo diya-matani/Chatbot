@@ -1,0 +1,22 @@
+.wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.btn {
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--wiz-primary);
+  background: white;
+  color: var(--wiz-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn:hover {
+  background: var(--wiz-primary);
+  color: white;
+}
