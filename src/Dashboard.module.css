@@ -84,3 +84,22 @@
 .scoreLow {
   color: var(--wiz-text-muted);
 }
+
+.details {
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.details div {
+  margin-bottom: 4px;
+}
+
+.details div:last-child {
+  margin-bottom: 0;
+}
+
+.details strong {
+  color: var(--wiz-text-muted);
+  font-weight: 600;
+  margin-right: 4px;
+}

@@ -37,6 +37,8 @@ export default function Dashboard() {
                 <th>Name</th>
                 <th>Phone</th>
                 <th>Email</th>
+                <th>City</th>
+                <th>Details</th>
                 <th>Score</th>
                 <th>Demo</th>
                 <th>Time</th>
@@ -59,6 +61,27 @@ export default function Dashboard() {
                   <td>{lead.name || '—'}</td>
                   <td>{lead.phone || '—'}</td>
                   <td>{lead.email || '—'}</td>
+                  <td>{lead.city || '—'}</td>
+                  <td className={styles.details}>
+                    {lead.userType === 'Parent' ? (
+                      <>
+                        <div><strong>Grade:</strong> {lead.childGrade || '—'}</div>
+                        <div><strong>Curriculum:</strong> {lead.curriculum || '—'}</div>
+                        <div><strong>Interest:</strong> {lead.interest || '—'}</div>
+                        <div><strong>Mode:</strong> {lead.preferredMode || '—'}</div>
+                      </>
+                    ) : (
+                      <>
+                        <div><strong>School:</strong> {lead.schoolName || '—'}</div>
+                        <div><strong>Role:</strong> {lead.role || '—'}</div>
+                        <div><strong>Decision Maker:</strong> {lead.decisionMaker || '—'}</div>
+                        <div><strong>Size:</strong> {lead.schoolSize || '—'}</div>
+                        <div><strong>Grades:</strong> {lead.grades || '—'}</div>
+                        <div><strong>Curriculum:</strong> {lead.curriculum || '—'}</div>
+                        <div><strong>Program Type:</strong> {lead.programType || '—'}</div>
+                      </>
+                    )}
+                  </td>
                   <td>
                     <span
                       className={
