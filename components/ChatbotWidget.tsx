@@ -12,6 +12,7 @@ import { calculateLeadScore, getLeadTemperature } from '@/lib/leadScorer'
 import { saveLead } from '@/lib/leadStorage'
 import { trackEvent } from '@/lib/analytics'
 import type { Message, LeadData } from '@/lib/types'
+import WizklubLogo from '@/components/WizklubLogo'
 import MessageBubble from './MessageBubble'
 import ChatInput from './ChatInput'
 import ProgressBar from './ProgressBar'
@@ -314,14 +315,7 @@ const ChatbotWidget = forwardRef<ChatbotWidgetRef>((props, ref) => {
             />
           </svg>
         ) : (
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-            />
-          </svg>
+          <WizklubLogo variant="mark" className="w-7 h-7" />
         )}
       </button>
 
@@ -331,8 +325,8 @@ const ChatbotWidget = forwardRef<ChatbotWidgetRef>((props, ref) => {
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 text-white p-4 rounded-t-lg flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center font-bold text-lg">
-                W
+              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                <WizklubLogo variant="mark" className="w-7 h-7" />
               </div>
               <div>
                 <h3 className="font-semibold">WizKlub Assistant</h3>

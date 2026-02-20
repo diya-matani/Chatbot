@@ -5,6 +5,8 @@ interface HeroSectionProps {
   onSchoolPartnership: () => void
 }
 
+import WizklubLogo from '@/components/WizklubLogo'
+
 export default function HeroSection({ onBookDemo, onSchoolPartnership }: HeroSectionProps) {
   return (
     <section className="relative bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 pt-24 pb-20 px-4 overflow-hidden">
@@ -17,6 +19,9 @@ export default function HeroSection({ onBookDemo, onSchoolPartnership }: HeroSec
 
       <div className="max-w-6xl mx-auto text-center relative z-10">
         <div className="animate-fade-in">
+          <div className="flex justify-center mb-6">
+            <WizklubLogo className="h-14 w-auto" />
+          </div>
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
             Future-Ready STEM Learning
             <br />
