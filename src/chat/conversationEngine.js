@@ -215,6 +215,36 @@ export function getNextStep(state, userMessage) {
   }
 }
 
+/**
+ * Recommends a program based on child's grade/age
+ */
+function getProgramRecommendation(childAge) {
+  if (!childAge) return "our personalized STEM program"
+  
+  const ageLower = childAge.toLowerCase()
+  const ageNum = parseInt(childAge.match(/\d+/)?.[0] || '0')
+  
+  // Age-based recommendations
+  if (ageLower.includes('6') || ageLower.includes('7') || ageLower.includes('8') || (ageNum >= 6 && ageNum <= 8)) {
+    return "our **Grade 1–3 Foundation STEM** program"
+  } else if (ageLower.includes('9') || ageLower.includes('10') || ageLower.includes('11') || (ageNum >= 9 && ageNum <= 11)) {
+    return "our **Grade 4–6 Computational Thinking** program"
+  } else if (ageLower.includes('12') || ageLower.includes('13') || ageLower.includes('14') || ageLower.includes('15') || (ageNum >= 12 && ageNum <= 15)) {
+    return "our **Grade 7–9 Advanced Coding & Robotics** program"
+  }
+  
+  // Grade-based recommendations
+  if (ageLower.includes('grade 1') || ageLower.includes('grade 2') || ageLower.includes('grade 3')) {
+    return "our **Grade 1–3 Foundation STEM** program"
+  } else if (ageLower.includes('grade 4') || ageLower.includes('grade 5') || ageLower.includes('grade 6')) {
+    return "our **Grade 4–6 Computational Thinking** program"
+  } else if (ageLower.includes('grade 7') || ageLower.includes('grade 8') || ageLower.includes('grade 9')) {
+    return "our **Grade 7–9 Advanced Coding & Robotics** program"
+  }
+  
+  return "our personalized STEM program"
+}
+
 export function getBotContent(state) {
   const { step, userType, payload, leadScore = 0, maxScore = 0 } = state
 
@@ -330,15 +360,20 @@ export function getBotContent(state) {
       }
 
     case STEPS.CONFIRM_BOOK_DEMO: {
-      const scoreLabel = maxScore > 0 ? ` (Lead score: ${leadScore}/${maxScore})` : ''
-      const cta = userType === USER_TYPE.SCHOOL
-        ? "Perfect! One of our **partnership managers** will reach out within 24 hours to discuss how WizKlub can benefit your students. Would you like to **book a partnership demo** now?"
-        : "Thanks, " + (payload.name || 'there') + "! Based on your child's age and interests, we'll create a **personalized STEM learning plan**. Book a **free 1:1 demo** to see it in action?" + scoreLabel
+      let cta
+      if (userType === USER_TYPE.SCHOOL) {
+        const schoolInfo = payload.schoolName ? ` for ${payload.schoolName}` : ''
+        cta = `Perfect! Based on your school's needs (${payload.grades || 'selected grades'}, ${payload.reach || 'student strength'}), we recommend our **${payload.programType || 'partnership'} program**. Would you like to book a **FREE 30-min partnership demo this week** to see how WizKlub can benefit your students${schoolInfo}?`
+      } else {
+        const programRec = getProgramRecommendation(payload.childAge)
+        const name = payload.name ? `, ${payload.name}` : ''
+        cta = `Thanks${name}! Based on your child's grade, we recommend ${programRec}. Would you like to book a **FREE 30-min live demo this week** to see it in action?`
+      }
       return {
         text: cta,
         quickReplies: userType === USER_TYPE.SCHOOL 
-          ? ['Yes, book partnership demo', 'Just call me']
-          : ['Yes, book a demo', 'Just call me'],
+          ? ['Yes, book FREE demo', 'Just call me']
+          : ['Yes, book FREE demo', 'Just call me'],
       }
     }
 
@@ -348,12 +383,12 @@ export function getBotContent(state) {
       let msg
       if (payload.demoBooked) {
         msg = userType === USER_TYPE.SCHOOL
-          ? "🎉 **Partnership demo booked!** We'll send a calendar link to your email and our partnership manager will call you to confirm. Looking forward to partnering with " + (payload.schoolName || 'your school') + "!"
-          : "🎉 **Demo booked!** We'll send a calendar link to your email and call you to confirm. Can't wait to show you the perfect STEM program for your child!"
+          ? "🎉 **FREE 30-min partnership demo booked!** We'll send a calendar link to your email and our partnership manager will call you this week to confirm. Looking forward to partnering with " + (payload.schoolName || 'your school') + "!"
+          : "🎉 **FREE 30-min demo booked!** We'll send a calendar link to your email and call you this week to confirm. Can't wait to show you " + getProgramRecommendation(payload.childAge) + "!"
       } else {
         msg = userType === USER_TYPE.SCHOOL
-          ? "Perfect! We've noted your partnership inquiry. Our **partnership team** will call you within 24 hours to discuss how WizKlub can benefit your students. Have a great day!"
-          : "Perfect! We've noted your details. Our team will call you within 24 hours to discuss the best **STEM program** for your child. Have a great day!"
+          ? "Perfect! We've noted your partnership inquiry. Our **partnership team** will call you within 24 hours to schedule your FREE demo. Have a great day!"
+          : "Perfect! We've noted your details. Our team will call you within 24 hours to schedule your **FREE 30-min demo** for " + getProgramRecommendation(payload.childAge) + ". Have a great day!"
       }
       return {
         text: msg,
