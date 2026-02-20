@@ -241,11 +241,62 @@ export function getNextStep(state, userMessage) {
       return next
 
     case STEPS.CONFIRM_BOOK_DEMO:
-      next.step = STEPS.COMPLETE
-      next.payload.demoBooked = msg.includes('book') || msg.includes('yes') || msg === '1' || msg.includes('demo')
-      // Demo intent gets +30 points (for parents)
-      if (userType === USER_TYPE.PARENT && next.payload.demoBooked) {
-        next.leadScore = (next.leadScore || 0) + PARENT_SCORE.demo_intent
+      // Check for objections/hesitation
+      const isObjection = msg.includes('not sure') || msg.includes('think') || msg.includes('later') || 
+                         msg.includes('expensive') || msg.includes('cost') || msg.includes('price') || 
+                         msg.includes('busy') || msg.includes('time') || msg.includes('maybe') ||
+                         msg.includes('exploring') || msg.includes('just looking')
+      
+      if (isObjection) {
+        next.step = STEPS.HANDLE_OBJECTION
+        return next
+      }
+      
+      // Check for positive response
+      if (msg.includes('book') || msg.includes('yes') || msg === '1' || msg.includes('demo') || msg.includes('let\'s do it')) {
+        next.step = STEPS.COMPLETE
+        next.payload.demoBooked = true
+        // Demo intent gets +30 points (for parents)
+        if (userType === USER_TYPE.PARENT) {
+          next.leadScore = (next.leadScore || 0) + PARENT_SCORE.demo_intent
+        }
+        return next
+      }
+      
+      // "Just call me" - still complete but note preference
+      if (msg.includes('call')) {
+        next.step = STEPS.COMPLETE
+        next.payload.demoBooked = false
+        return next
+      }
+      
+      // Default: handle as objection
+      next.step = STEPS.HANDLE_OBJECTION
+      return next
+
+    case STEPS.HANDLE_OBJECTION:
+      // After handling objection, check response
+      // Handle "2-minute overview" response
+      if (msg.includes('show me') || msg.includes('overview')) {
+        // Show overview and then offer full demo
+        next.step = STEPS.CONFIRM_BOOK_DEMO
+        next.payload.sawOverview = true
+        return next
+      }
+      
+      if (msg.includes('yes') || msg.includes('let\'s do it') || msg.includes('book') || msg.includes('demo') || msg.includes('full demo')) {
+        next.step = STEPS.COMPLETE
+        next.payload.demoBooked = true
+        if (userType === USER_TYPE.PARENT) {
+          next.leadScore = (next.leadScore || 0) + PARENT_SCORE.demo_intent
+        }
+      } else if (msg.includes('call')) {
+        next.step = STEPS.COMPLETE
+        next.payload.demoBooked = false
+      } else {
+        // Still hesitant - complete but note
+        next.step = STEPS.COMPLETE
+        next.payload.demoBooked = false
       }
       return next
 
@@ -406,7 +457,12 @@ export function getBotContent(state) {
       } else {
         const programRec = getProgramRecommendation(payload.childAge)
         const name = payload.name ? `, ${payload.name}` : ''
-        cta = `Thanks${name}! Based on your child's grade and interests, we recommend ${programRec}. Would you like to book a **FREE 30-min live demo this week** to see it in action?`
+        // If they saw the overview, acknowledge it
+        if (payload.sawOverview) {
+          cta = `Great! Our programs build problem-solving skills and coding confidence through hands-on projects. Based on your child's grade, we recommend ${programRec}. Would you like to book a **FREE 30-min live demo this week** to see it in action?`
+        } else {
+          cta = `Thanks${name}! Based on your child's grade and interests, we recommend ${programRec}. Would you like to book a **FREE 30-min live demo this week** to see it in action?`
+        }
       }
       return {
         text: cta,
@@ -419,6 +475,15 @@ export function getBotContent(state) {
     case STEPS.HANDLE_OBJECTION: {
       const objectionMsg = (userMessage || '').toLowerCase()
       let response
+      
+      // Specific response for "just exploring" (parents only)
+      if ((objectionMsg.includes('exploring') || objectionMsg.includes('just looking')) && userType === USER_TYPE.PARENT) {
+        response = "That's perfectly fine 😊 Many parents start there. Would you like a quick 2-minute overview of how our programs improve problem-solving and coding confidence?"
+        return {
+          text: response,
+          quickReplies: ['Yes, show me', 'Book full demo', 'Maybe later'],
+        }
+      }
       
       if (objectionMsg.includes('expensive') || objectionMsg.includes('cost') || objectionMsg.includes('price') || objectionMsg.includes('afford')) {
         response = userType === USER_TYPE.PARENT
@@ -450,12 +515,12 @@ export function getBotContent(state) {
       let msg
       if (payload.demoBooked) {
         msg = userType === USER_TYPE.SCHOOL
-          ? "🎉 **FREE 30-min partnership demo booked!** We'll send a calendar link to your email and our partnership manager will call you this week to confirm. Looking forward to partnering with " + (payload.schoolName || 'your school') + "!"
-          : "🎉 **FREE 30-min demo booked!** We'll send a calendar link to your email and call you this week to confirm. Can't wait to show you " + getProgramRecommendation(payload.childAge) + "!"
+          ? "🎉 **Wonderful! Your FREE 30-min partnership demo is booked!** We'll send a calendar link to your email shortly, and our partnership manager will call you this week to confirm details. We're excited about the possibility of partnering with " + (payload.schoolName || 'your school') + " to empower your students with STEM skills!"
+          : "🎉 **Excellent! Your FREE 30-min demo is booked!** We'll send a calendar link to your email shortly, and we'll call you this week to confirm. We can't wait to show you " + getProgramRecommendation(payload.childAge) + " and help your child unlock their potential!"
       } else {
         msg = userType === USER_TYPE.SCHOOL
-          ? "Perfect! We've noted your partnership inquiry. Our **partnership team** will call you within 24 hours to schedule your FREE demo. Have a great day!"
-          : "Perfect! We've noted your details. Our team will call you within 24 hours to schedule your **FREE 30-min demo** for " + getProgramRecommendation(payload.childAge) + ". Have a great day!"
+          ? "Thank you so much for your interest! We've noted your partnership inquiry. Our partnership team will call you within 24 hours to discuss how WizKlub can benefit your students and schedule your FREE demo. Looking forward to connecting!"
+          : "Thank you! We've noted all your details. Our team will call you within 24 hours to schedule your **FREE 30-min demo** for " + getProgramRecommendation(payload.childAge) + ". We're excited to show you how we can help your child thrive! Have a wonderful day!"
       }
       return {
         text: msg,
